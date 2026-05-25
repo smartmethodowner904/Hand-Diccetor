@@ -2,97 +2,64 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-// Camera Access
-navigator.mediaDevices.getUserMedia({
-  video: true
-}).then((stream) => {
+// ===== CAMERA SELECT =====
+
+let currentCamera = "user"; // front camera
+
+async function startCamera(cameraType){
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video:{
+      facingMode: cameraType
+    }
+  });
+
   video.srcObject = stream;
+
+}
+
+startCamera(currentCamera);
+
+// ===== SWITCH CAMERA =====
+
+document.addEventListener("dblclick", async ()=>{
+
+  currentCamera =
+    currentCamera === "user"
+    ? "environment"
+    : "user";
+
+  const tracks = video.srcObject.getTracks();
+
+  tracks.forEach(track => track.stop());
+
+  await startCamera(currentCamera);
+
 });
 
-// MediaPipe Hands Setup
+// ===== MEDIAPIPE =====
+
 const hands = new Hands({
-  locateFile: (file) => {
+  locateFile: (file)=>{
     return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
   }
 });
 
 hands.setOptions({
-  maxNumHands: 1,
-  modelComplexity: 1,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7
+  maxNumHands:1,
+  modelComplexity:1,
+  minDetectionConfidence:0.7,
+  minTrackingConfidence:0.7
 });
 
-// Draw Hand Connections
-function drawHand(landmarks) {
+// ===== DRAW =====
 
-  // Draw lines
-  const connections = HAND_CONNECTIONS;
+hands.onResults((results)=>{
 
-  for (const connection of connections) {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-    const start = landmarks[connection[0]];
-    const end = landmarks[connection[1]];
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      start.x * canvas.width,
-      start.y * canvas.height
-    );
-
-    ctx.lineTo(
-      end.x * canvas.width,
-      end.y * canvas.height
-    );
-
-    ctx.strokeStyle = "lime";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-  }
-
-  // Draw points
-  for (const point of landmarks) {
-
-    const x = point.x * canvas.width;
-    const y = point.y * canvas.height;
-
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-
-    ctx.fillStyle = "yellow";
-    ctx.fill();
-  }
-}
-
-// Finger Count
-function countFingers(landmarks) {
-
-  let fingers = 0;
-
-  // Thumb
-  if (landmarks[4].x < landmarks[3].x) {
-    fingers++;
-  }
-
-  // Other fingers
-  if (landmarks[8].y < landmarks[6].y) fingers++;
-  if (landmarks[12].y < landmarks[10].y) fingers++;
-  if (landmarks[16].y < landmarks[14].y) fingers++;
-  if (landmarks[20].y < landmarks[18].y) fingers++;
-
-  return fingers;
-}
-
-// Results
-hands.onResults((results) => {
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Draw Camera
+  // FULLSCREEN CAMERA
   ctx.drawImage(
     results.image,
     0,
@@ -101,60 +68,79 @@ hands.onResults((results) => {
     canvas.height
   );
 
-  if (results.multiHandLandmarks) {
+  // ONLY ONE SCREEN
+  // NO EXTRA CAMERA BOX
 
-    for (const landmarks of results.multiHandLandmarks) {
+  if(results.multiHandLandmarks){
 
-      drawHand(landmarks);
+    for(const landmarks of results.multiHandLandmarks){
 
-      // Count Fingers
-      const total = countFingers(landmarks);
+      // DRAW CONNECTIONS
 
-      // Show Text
-      ctx.font = "40px Arial";
-      ctx.fillStyle = "red";
-      ctx.fillText(
-        `Fingers: ${total}`,
-        20,
-        60
-      );
+      for(const connection of HAND_CONNECTIONS){
 
-      // Gesture Names
-      let gesture = "Unknown";
+        const start = landmarks[connection[0]];
+        const end = landmarks[connection[1]];
 
-      if (total === 0) {
-        gesture = "Fist ✊";
-      }
-      else if (total === 1) {
-        gesture = "Point 👆";
-      }
-      else if (total === 2) {
-        gesture = "Peace ✌️";
-      }
-      else if (total === 5) {
-        gesture = "Open Hand ✋";
+        ctx.beginPath();
+
+        ctx.moveTo(
+          start.x * canvas.width,
+          start.y * canvas.height
+        );
+
+        ctx.lineTo(
+          end.x * canvas.width,
+          end.y * canvas.height
+        );
+
+        ctx.strokeStyle = "lime";
+        ctx.lineWidth = 5;
+        ctx.stroke();
       }
 
-      ctx.fillStyle = "cyan";
+      // DRAW POINTS
 
-      ctx.fillText(
-        gesture,
-        20,
-        120
-      );
+      for(const point of landmarks){
+
+        const x = point.x * canvas.width;
+        const y = point.y * canvas.height;
+
+        ctx.beginPath();
+
+        ctx.arc(
+          x,
+          y,
+          10,
+          0,
+          2 * Math.PI
+        );
+
+        ctx.fillStyle = "yellow";
+        ctx.fill();
+      }
+
     }
+
   }
+
 });
 
-// Camera Start
-const camera = new Camera(video, {
-  onFrame: async () => {
+// ===== CAMERA START =====
+
+const camera = new Camera(video,{
+
+  onFrame: async ()=>{
+
     await hands.send({
       image: video
     });
+
   },
-  width: 640,
-  height: 480
+
+  width:1280,
+  height:720
+
 });
 
 camera.start();
