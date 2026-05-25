@@ -1,91 +1,241 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Hand Gesture Control</title>
+<title>Hand Gesture Control</title>
 
-  <link rel="stylesheet" href="style.css"/>
+<style>
 
-  <style>
+body{
+  margin:0;
+  background:black;
+  overflow:hidden;
+  font-family:Arial;
+}
 
-    body{
-      margin:0;
-      background:#000;
-      overflow:hidden;
-      font-family:Arial,sans-serif;
-      color:white;
-      text-align:center;
-    }
+#container{
+  position:relative;
+  width:100vw;
+  height:100vh;
+}
 
-    h1{
-      margin-top:15px;
-      font-size:35px;
-      color:lime;
-      text-shadow:0 0 20px lime;
-    }
+video{
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+}
 
-    .container{
-      position:relative;
-      width:100%;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      margin-top:10px;
-    }
+canvas{
+  position:absolute;
+  width:100%;
+  height:100%;
+}
 
-    video{
-      display:none;
-    }
+#switchBtn{
+  position:absolute;
+  top:20px;
+  right:20px;
 
-    canvas{
-      width:95%;
-      max-width:900px;
-      border-radius:20px;
-      border:3px solid lime;
-      box-shadow:0 0 25px lime;
-    }
+  z-index:100;
 
-    .info{
-      margin-top:15px;
-      font-size:20px;
-      color:cyan;
-    }
+  padding:12px 20px;
 
-  </style>
+  border:none;
+  border-radius:15px;
+
+  background:lime;
+  color:black;
+
+  font-size:18px;
+  font-weight:bold;
+}
+
+#title{
+  position:absolute;
+  top:20px;
+  left:20px;
+
+  z-index:100;
+
+  color:white;
+  font-size:22px;
+  font-weight:bold;
+
+  text-shadow:0 0 20px lime;
+}
+
+</style>
 </head>
 
 <body>
 
-  <h1>🖐️ Hand Gesture Control</h1>
+<div id="container">
 
-  <div class="container">
-
-    <video
-      id="video"
-      autoplay
-      playsinline>
-    </video>
-
-    <canvas id="canvas"></canvas>
-
+  <div id="title">
+    🖐️ Hand Gesture Control
   </div>
 
-  <div class="info">
-    ✋ Show Your Hand To Camera
-  </div>
+  <button id="switchBtn">
+    🔄 Switch
+  </button>
 
-  <!-- MediaPipe -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <video
+    id="video"
+    autoplay
+    playsinline>
+  </video>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <canvas id="canvas"></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+</div>
 
-  <!-- Your Script -->
-  <script src="script.js"></script>
+<!-- MediaPipe -->
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+
+<script>
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const switchBtn = document.getElementById("switchBtn");
+
+let currentCamera = "user";
+
+let camera;
+
+// START CAMERA
+
+async function startCamera(){
+
+  const stream =
+    await navigator.mediaDevices.getUserMedia({
+
+      video:{
+        facingMode:currentCamera
+      }
+
+    });
+
+  video.srcObject = stream;
+
+}
+
+startCamera();
+
+// SWITCH CAMERA
+
+switchBtn.onclick = async ()=>{
+
+  currentCamera =
+    currentCamera === "user"
+    ? "environment"
+    : "user";
+
+  const tracks =
+    video.srcObject.getTracks();
+
+  tracks.forEach(track=>track.stop());
+
+  await startCamera();
+
+};
+
+// HANDS
+
+const hands = new Hands({
+
+  locateFile:(file)=>{
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+  }
+
+});
+
+hands.setOptions({
+
+  maxNumHands:1,
+  modelComplexity:1,
+  minDetectionConfidence:0.7,
+  minTrackingConfidence:0.7
+
+});
+
+// RESULTS
+
+hands.onResults((results)=>{
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  if(results.multiHandLandmarks){
+
+    for(const landmarks of results.multiHandLandmarks){
+
+      // DRAW CONNECTIONS
+
+      drawConnectors(
+        ctx,
+        landmarks,
+        HAND_CONNECTIONS,
+        {
+          color:"lime",
+          lineWidth:5
+        }
+      );
+
+      // DRAW POINTS
+
+      drawLandmarks(
+        ctx,
+        landmarks,
+        {
+          color:"yellow",
+          lineWidth:2
+        }
+      );
+
+    }
+
+  }
+
+});
+
+// CAMERA UTILS
+
+camera = new Camera(video,{
+
+  onFrame: async ()=>{
+
+    await hands.send({
+      image:video
+    });
+
+  },
+
+  width:1280,
+  height:720
+
+});
+
+camera.start();
+
+</script>
 
 </body>
 </html>
