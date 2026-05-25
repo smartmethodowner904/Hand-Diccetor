@@ -1,20 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
   <title>Hand Gesture Control</title>
-  <link rel="stylesheet" href="style.css">
+
+  <link rel="stylesheet" href="style.css"/>
+
+  <style>
+
+    body{
+      margin:0;
+      background:#000;
+      overflow:hidden;
+      font-family:Arial,sans-serif;
+      color:white;
+      text-align:center;
+    }
+
+    h1{
+      margin-top:15px;
+      font-size:35px;
+      color:lime;
+      text-shadow:0 0 20px lime;
+    }
+
+    .container{
+      position:relative;
+      width:100%;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin-top:10px;
+    }
+
+    video{
+      display:none;
+    }
+
+    canvas{
+      width:95%;
+      max-width:900px;
+      border-radius:20px;
+      border:3px solid lime;
+      box-shadow:0 0 25px lime;
+    }
+
+    .info{
+      margin-top:15px;
+      font-size:20px;
+      color:cyan;
+    }
+
+  </style>
 </head>
+
 <body>
 
-<h1>🖐️ Hand Gesture Control</h1>
+  <h1>🖐️ Hand Gesture Control</h1>
 
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas"></canvas>
+  <div class="container">
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <video
+      id="video"
+      autoplay
+      playsinline>
+    </video>
 
-<script src="script.js"></script>
+    <canvas id="canvas"></canvas>
+
+  </div>
+
+  <div class="info">
+    ✋ Show Your Hand To Camera
+  </div>
+
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+
+  <!-- Your Script -->
+  <script src="script.js"></script>
 
 </body>
 </html>
